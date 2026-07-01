@@ -1,0 +1,29 @@
+.PHONY: install gen
+
+install:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+
+gen:
+	@echo "Creating pb directory..."
+	mkdir -p pb
+	@echo "Downloading google/api proto files..."
+	mkdir -p proto/google/api
+	curl -sSL https://raw.githubusercontent.com/googleapis/googleapis/master/google/api/annotations.proto -o proto/google/api/annotations.proto
+	curl -sSL https://raw.githubusercontent.com/googleapis/googleapis/master/google/api/http.proto -o proto/google/api/http.proto
+	@echo "Generating Go code from proto..."
+	PATH="$$(go env GOPATH)/bin:$$PATH" protoc -I ./proto \
+		--go_out=./pb --go_opt=paths=source_relative \
+		--go-grpc_out=./pb --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=./pb --grpc-gateway_opt=paths=source_relative \
+		proto/service.proto
+	@echo "Code generation successful!"
+
+run:
+	go run cmd/server/main.go
+
+watch:
+	@echo "Starting Air for live reloading..."
+	PATH="$$(go env GOPATH)/bin:$$PATH" air
