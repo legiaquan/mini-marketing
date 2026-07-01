@@ -15,6 +15,7 @@ import (
 
 	"mini-marketing/config"
 	"mini-marketing/internal/services"
+	"mini-marketing/internal/stores"
 	"mini-marketing/pb"
 )
 
@@ -22,6 +23,10 @@ func main() {
 	// 1. Khởi tạo cấu hình hệ thống
 	config.InitConfig()
 	fmt.Println("🚀 Bắt đầu khởi động Mini Marketing Server...")
+
+	// Khởi tạo kết nối Databases
+	stores.InitMySQL()
+	stores.InitRedis()
 
 	// 2. Khởi tạo Service logic của chúng ta
 	campaignService := services.NewCampaignService()
