@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package marketing;
+
+// Đường dẫn mà code Go sẽ được generate ra
+option go_package = "mini-marketing/pb";
+
+// Import thư viện của Google để hỗ trợ map gRPC thành HTTP REST API
+import "google/api/annotations.proto";
+
+// 1. Định nghĩa Data Structure (giống như struct trong Go hoặc class trong Java)
+message CampaignRequest {
+    string name = 1;         // Tên chiến dịch (VD: Khuyến mãi hè)
+    string content = 2;      // Nội dung thông báo
+    int32 target_users = 3;  // Số lượng user muốn gửi thử (giả lập)
+}
+
+message CampaignResponse {
+    string id = 1;
+    string status = 2;
+    string message = 3;
+}
+
+// 2. Định nghĩa Service (gồm các API)
+service MarketingService {
+    // API tạo Campaign
+    rpc CreateCampaign(CampaignRequest) returns (CampaignResponse) {
+        // Khai báo để grpc-gateway biết cách biến hàm này thành một HTTP POST
+        option (google.api.http) = {
+            post: "/v1/campaigns"
+            body: "*"
+        };
+    }
+}
