@@ -2,15 +2,19 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	
+	"mini-marketing/config"
 	"mini-marketing/pb"
 	"mini-marketing/internal/models"
 	"mini-marketing/internal/stores"
+	"mini-marketing/internal/process"
 )
 
 // 1. Khai báo một Struct đại diện cho Service của bạn
@@ -62,9 +66,33 @@ func (s *CampaignService) CreateCampaign(ctx context.Context, req *pb.CampaignRe
 
 	fmt.Printf("✅ Đã lưu Campaign '%s' vào Database thành công!\n", newCampaign.ID)
 
-	// Sau này ở đây sẽ đẩy vào Redis Queue (Giai đoạn 5)
+	// 2.5 Giai đoạn 5: Đẩy Task vào Queue để chạy ngầm
+	// Tạo danh sách User IDs giả lập theo số lượng khách hàng yêu cầu
+	var mockUserIDs []int
+	for i := 1; i <= int(req.GetTargetUsers()); i++ {
+		mockUserIDs = append(mockUserIDs, i)
+	}
 
-	// 3. Trả về kết quả cho người dùng
+	payloadBytes, _ := json.Marshal(process.SendNotificationPayload{
+		CampaignID: newCampaign.ID,
+		UserIDs:    mockUserIDs,
+	})
+
+	task := asynq.NewTask(process.TypeSendNotification, payloadBytes)
+	
+	// Khởi tạo Asynq Client (Thực tế nên gom thành biến toàn cục ở stores, nhưng để gọn ta khởi tạo tạm ở đây)
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: config.AppConfig.RedisURL})
+	defer asynqClient.Close()
+
+	// Chỉ định đẩy Task vào Queue có tên là "campaign" (thay vì "default")
+	info, err := asynqClient.Enqueue(task, asynq.Queue("campaign"))
+	if err != nil {
+		fmt.Printf("❌ Lỗi đẩy Task vào Queue: %v\n", err)
+	} else {
+		fmt.Printf("📦 Đã đẩy Task vào Queue! TaskID: %s\n", info.ID)
+	}
+
+	// 3. Trả về kết quả cho người dùng (Không bị đứng chờ gửi thông báo xong)
 	return &pb.CampaignResponse{
 		Id:      newCampaign.ID,
 		Status:  newCampaign.Status,

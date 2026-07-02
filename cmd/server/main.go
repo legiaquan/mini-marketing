@@ -16,6 +16,7 @@ import (
 	"mini-marketing/config"
 	"mini-marketing/internal/services"
 	"mini-marketing/internal/stores"
+	"mini-marketing/internal/process"
 	"mini-marketing/pb"
 )
 
@@ -28,7 +29,13 @@ func main() {
 	stores.InitMySQL()
 	stores.InitRedis()
 
-	// 2. Khởi tạo Service logic của chúng ta
+	// Phân luồng: Nếu biến môi trường IS_PROCESS=true thì chỉ chạy Worker
+	if config.AppConfig.IsProcess {
+		process.RunWorkerServer()
+		return // Thoát hàm main, không khởi động API
+	}
+
+	// 2. Khởi tạo Service logic của chúng ta (API Server)
 	campaignService := services.NewCampaignService()
 
 	// 3. Khởi tạo gRPC Server (chạy ở cổng 9090)
