@@ -31,6 +31,10 @@ func main() {
 
 	// Phân luồng: Nếu biến môi trường IS_PROCESS=true thì chỉ chạy Worker
 	if config.AppConfig.IsProcess {
+		// Bật Kafka Consumer chạy ngầm (Lắng nghe sự kiện)
+		go process.StartKafkaConsumer()
+
+		// Chạy Asynq Server (Hàm này chặn luồng chính nên để cuối cùng)
 		process.RunWorkerServer()
 		return // Thoát hàm main, không khởi động API
 	}

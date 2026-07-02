@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -22,22 +21,24 @@ func HandleSendNotificationTask(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 
-	log.Printf("📥 [Worker] Bắt đầu xử lý Campaign '%s' cho %d users", payload.CampaignID, len(payload.UserIDs))
+	log.Printf("📥 [REDIS WORKER] Bắt đầu lấy Task ra khỏi Queue (Campaign: '%s', Tổng Users: %d)", payload.CampaignID, len(payload.UserIDs))
 
 	// [MỚI] Báo cho MySQL biết: Đầu bếp đã bắt đầu xào phở
+	// LƯU Ý: Ở dự án thật, ta phải INSERT dòng Campaign này vào MySQL ở bước Kafka Consumer trước.
+	// Hiện tại GORM chạy Update("status") nhưng không có báo lỗi (chỉ trả về 0 RowsAffected) do MySQL cho phép Update trên bản ghi không tồn tại.
 	stores.DB.Model(&models.Campaign{}).Where("id = ?", payload.CampaignID).Update("status", "PROCESSING")
 
 	// GIẢ LẬP LỖI: Random 30% xác suất tác vụ này sẽ bị văng lỗi (Rớt mạng/Sập DB)
-	if rand.Intn(100) < 30 {
-		log.Printf("🔥 [Worker] CẢNH BÁO: Rớt mạng đột ngột khi xử lý Campaign '%s'! (Asynq sẽ tự động Retry)", payload.CampaignID)
-		return fmt.Errorf("kết nối đến máy chủ Firebase bị gián đoạn")
-	}
+	// if rand.Intn(100) < 30 {
+	// 	log.Printf("🔥 [Worker] CẢNH BÁO: Rớt mạng đột ngột khi xử lý Campaign '%s'! (Asynq sẽ tự động Retry)", payload.CampaignID)
+	// 	return fmt.Errorf("kết nối đến máy chủ Firebase bị gián đoạn")
+	// }
 
 	// Vòng lặp giả lập việc gửi thông báo
 	for _, userID := range payload.UserIDs {
 		// Giả lập độ trễ mạng khi gọi sang Firebase/APNs
 		time.Sleep(10 * time.Millisecond)
-		log.Printf("📨 [Worker] Đã gửi thông báo thành công đến UserID: %d", userID)
+		log.Printf("📨 [REDIS WORKER] Đã gọi API Firebase gửi Push Noti thành công đến UserID: %d", userID)
 
 		// [MỚI] Tăng biến đếm trong Redis lên 1 đơn vị cực kỳ nhanh chóng
 		redisKey := fmt.Sprintf("campaign:%s:processed", payload.CampaignID)
@@ -47,7 +48,7 @@ func HandleSendNotificationTask(ctx context.Context, t *asynq.Task) error {
 	// [MỚI] Báo cho MySQL biết: Đã nấu xong 100 tô phở thành công!
 	stores.DB.Model(&models.Campaign{}).Where("id = ?", payload.CampaignID).Update("status", "COMPLETED")
 
-	log.Printf("✅ [Worker] Hoàn thành Campaign '%s'", payload.CampaignID)
+	log.Printf("✅ [REDIS WORKER] Hoàn thành toàn bộ quy trình cho Campaign '%s'", payload.CampaignID)
 	return nil
 }
 
@@ -56,7 +57,7 @@ func RunWorkerServer() {
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: config.AppConfig.RedisURL},
 		asynq.Config{
-			Concurrency: 3, // Số lượng luồng xử lý đồng thời cực đại
+			Concurrency: 5, // Số lượng luồng xử lý đồng thời cực đại
 			Queues: map[string]int{
 				"campaign": 1, // Tên queue là 'campaign', độ ưu tiên là 1
 			},

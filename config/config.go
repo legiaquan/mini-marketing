@@ -11,8 +11,10 @@ type Config struct {
 	Port         string `mapstructure:"PORT"`
 	DatabaseURL  string `mapstructure:"DB_URL"`
 	RedisURL     string `mapstructure:"REDIS_URL"`
-	KafkaBrokers string `mapstructure:"KAFKA_BROKERS"`
-	IsProcess    bool   `mapstructure:"IS_PROCESS"`
+	KafkaBrokers  string `mapstructure:"KAFKA_BROKERS"`
+	KafkaUser     string `mapstructure:"KAFKA_USER"`
+	KafkaPassword string `mapstructure:"KAFKA_PASSWORD"`
+	IsProcess     bool   `mapstructure:"IS_PROCESS"`
 }
 
 var AppConfig Config
@@ -28,6 +30,8 @@ func InitConfig() {
 	viper.SetDefault("DB_URL", "user:password@tcp(localhost:3306)/mini_marketing?parseTime=true")
 	viper.SetDefault("REDIS_URL", "localhost:6379")
 	viper.SetDefault("KAFKA_BROKERS", "localhost:9092")
+	viper.SetDefault("KAFKA_USER", "admin")
+	viper.SetDefault("KAFKA_PASSWORD", "secret_password")
 	viper.SetDefault("IS_PROCESS", false)
 
 	err := viper.Unmarshal(&AppConfig)
