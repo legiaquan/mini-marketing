@@ -7,6 +7,7 @@
 package pb
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,9 +26,9 @@ const (
 // 1. Định nghĩa Data Structure (giống như struct trong Go hoặc class trong Java)
 type CampaignRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                   // Tên chiến dịch (VD: Khuyến mãi hè)
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                             // Nội dung thông báo
-	TargetUsers   int32                  `protobuf:"varint,3,opt,name=target_users,json=targetUsers,proto3" json:"target_users,omitempty"` // Số lượng user muốn gửi thử (giả lập)
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                   // Bắt buộc từ 5-255 ký tự
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                             // Bắt buộc nhập nội dung
+	TargetUsers   int32                  `protobuf:"varint,3,opt,name=target_users,json=targetUsers,proto3" json:"target_users,omitempty"` // Bắt buộc lớn hơn 0
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,11 +148,12 @@ var File_service_proto protoreflect.FileDescriptor
 
 const file_service_proto_rawDesc = "" +
 	"\n" +
-	"\rservice.proto\x12\tmarketing\x1a\x1cgoogle/api/annotations.proto\"b\n" +
-	"\x0fCampaignRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\x12!\n" +
-	"\ftarget_users\x18\x03 \x01(\x05R\vtargetUsers\"T\n" +
+	"\rservice.proto\x12\tmarketing\x1a\x1cgoogle/api/annotations.proto\x1a\x17validate/validate.proto\"\x80\x01\n" +
+	"\x0fCampaignRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x05\x18\xff\x01R\x04name\x12!\n" +
+	"\acontent\x18\x02 \x01(\tB\a\xfaB\x04r\x02\x10\x01R\acontent\x12*\n" +
+	"\ftarget_users\x18\x03 \x01(\x05B\a\xfaB\x04\x1a\x02 \x00R\vtargetUsers\"T\n" +
 	"\x10CampaignResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x18\n" +

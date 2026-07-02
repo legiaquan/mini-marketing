@@ -8,11 +8,14 @@ option go_package = "mini-marketing/pb";
 // Import thư viện của Google để hỗ trợ map gRPC thành HTTP REST API
 import "google/api/annotations.proto";
 
+// Import thư viện Validation
+import "validate/validate.proto";
+
 // 1. Định nghĩa Data Structure (giống như struct trong Go hoặc class trong Java)
 message CampaignRequest {
-    string name = 1;         // Tên chiến dịch (VD: Khuyến mãi hè)
-    string content = 2;      // Nội dung thông báo
-    int32 target_users = 3;  // Số lượng user muốn gửi thử (giả lập)
+    string name = 1 [(validate.rules).string = {min_len: 5, max_len: 255}]; // Bắt buộc từ 5-255 ký tự
+    string content = 2 [(validate.rules).string.min_len = 1];             // Bắt buộc nhập nội dung
+    int32 target_users = 3 [(validate.rules).int32.gt = 0];               // Bắt buộc lớn hơn 0
 }
 
 message CampaignResponse {
